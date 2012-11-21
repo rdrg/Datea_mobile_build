@@ -136,7 +136,7 @@ var DateaRouter = Backbone.Router.extend({
         this.loginView = new LoginView({model: localSession});
 		this.showView('#main', this.loginView);
         this.renderNavigation('loggedout');
-        this.renderHeader('loggedout');
+        this.renderHeader('general');
 	},
 	
 	logout: function () {
@@ -452,7 +452,6 @@ var DateaRouter = Backbone.Router.extend({
 
         }
         
-
         if(highlight !== undefined){
             $("#header li").each(function(index, elem){
                 //console.log("attribute: " + this.id);
@@ -468,7 +467,7 @@ var DateaRouter = Backbone.Router.extend({
             });   
 
         }
-
+        
     }   
 });
 
