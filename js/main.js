@@ -65,6 +65,7 @@ var DateaRouter = Backbone.Router.extend({
 	    "": "home",
         "login": "login",
         "logout": "logout",
+        "register": "register",
         "about": "about",
         "search":"searchForm",
         "search/:term/:cat/:order": "searchQuery",
@@ -135,8 +136,15 @@ var DateaRouter = Backbone.Router.extend({
     login: function () {
         this.loginView = new LoginView({model: localSession});
 		this.showView('#main', this.loginView);
-        this.renderNavigation('loggedout');
+        this.renderNavigation('none');
         this.renderHeader('general');
+	},
+	
+	register: function() {
+        this.registerView = new RegisterView({model: localSession});
+        this.showView("#main", this.registerView);
+        this.renderHeader('general');
+        this.renderNavigation('none');
 	},
 	
 	logout: function () {
@@ -150,6 +158,7 @@ var DateaRouter = Backbone.Router.extend({
 	    localSession.set(logout_data);
 	    //console.log(localSession.get('logged'));
 	    localStorage.setItem("authdata", JSON.stringify(logout_data));
+	    window.localUser = new User();
 	    dateaApp.navigate("/", { trigger: true });
 	},
 	
@@ -397,11 +406,12 @@ var DateaRouter = Backbone.Router.extend({
                 $('#footer').html(this.navBarView.render(action_id).el);
                 break;
             case 'loggedout':
- 
-                $('#footer').empty();
-                this.navBarView = new NavBarLoggedOutView();
+                this.navBarView = new NavBarWelcomeView();
                 $('#footer').html(this.navBarView.render().el);
                 break;
+            case 'none':
+            	$('#footer').empty();
+            	break;
             default:
                 this.navBarView = new NavBarView();
             	$('#footer').html(this.navBarView.render().el);
@@ -483,11 +493,14 @@ function init_main () {
 	
     utils.loadTpl(['HeaderView', 
                     'AboutView', 
-                    'LoginView', 
+                    'LoginView',
+                    'RegisterView',
+                    'RegisterSuccessView',
                     'ProfileView',
                     'ProfileEditView',
                     'NavBarView',
                     'NavBarDateoView', 
+                    'NavBarWelcomeView',
                     'HomeView', 
                     'ActionsView',
                     'ActionView',
@@ -519,16 +532,16 @@ function init_main () {
                     'SearchFormView'
                     ],
 	function () {
-        Backbone.Tastypie.prependDomain = api_url || "http://10.0.2.2:8000";       
+        Backbone.Tastypie.prependDomain = api_url;       
         window.localSession = new Session();
-        //window.localUser = new User();
+        window.localUser = new User();
             //
             
         //if(localStorage.getItem('authdata') !== null) {
         if(localStorage.getItem('authdata') && localStorage.getItem('authdata')!== null) {
             //console.log(localStorage.getItem('authdata'));
     	    //window.localSession = new localSession();
-            window.localUser = new User();
+            //window.localUser = new User();
                
             var authdata = JSON.parse(localStorage.getItem('authdata'));
             localSession.set(authdata);
@@ -614,21 +627,26 @@ function onBackKeyPress() {
 }
 
 function onOffline(close){
-    navigator.notification.alert(
-        'Datea necesita Internet. Revisa tu conexión e intenta nuevamente.',
-        function() 
-        {
-        	if (typeof(close) != 'undefined' && close == true) {
-        		if (navigator.app && navigator.app.exitApp) {
-			        navigator.app.exitApp();
-			    } else if (navigator.device && navigator.device.exitApp) {
-			        navigator.device.exitApp();
-			    }
-        	}
-        },
-        'Error de conexión',
-        'ok'
-    );
+	var error = 'Datea necesita Internet. Revisa tu conexión e intenta nuevamente.';
+	if (navigator.notification){
+	    navigator.notification.alert(
+	        error,
+	        function() 
+	        {
+	        	if (typeof(close) != 'undefined' && close == true) {
+	        		if (navigator.app && navigator.app.exitApp) {
+				        navigator.app.exitApp();
+				    } else if (navigator.device && navigator.device.exitApp) {
+				        navigator.device.exitApp();
+				    }
+	        	}
+	        },
+	        'Error de conexión',
+	        'ok'
+	    );
+	 }else{
+	 	alert(error);
+	 }
 }
 
 function offLineAlertDismissed() {
