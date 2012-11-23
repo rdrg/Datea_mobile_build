@@ -1,7 +1,11 @@
 .cluster-content-view {
   z-index: 99;
   //width: 300px;
-  position: relative;
+  position: absolute;
+  top: 0px;
+  bottom: 0;
+  left: 0;
+  right:0;
   margin: 0;
   overflow: auto;
   .round(10px);
@@ -46,7 +50,6 @@
       width: 42px;
     }
     .data{
-      width: 233px;
       margin-left: 5px;
       .left;
       .date{
@@ -85,6 +88,7 @@
   .comment-wrap{
     h4{
       padding-left: 10px;
+      margin-bottom: 3px;
     }
   }
   #wrapper {
@@ -96,18 +100,5 @@
       padding-bottom: 10px;
       box-shadow: 1px 1px 8px 3px #aaa;
     }
-  }
-}
-.comment-form{
-  padding-left: 10px;
-  padding-right: 10px;
-  #comment-input{
-    -webkit-box-sizing: border-box;
-    width: 99%;
-    height: 63px;
-    margin-bottom: 20px;
-  }
-  button{
-    width: 100%;
   }
 }
