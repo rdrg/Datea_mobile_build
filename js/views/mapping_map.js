@@ -11,9 +11,9 @@ var MappingMapView = Backbone.View.extend({
     },
     
     events: {
-		'click .show-current-location': 'show_current_location',
-		'click .back-to-map': 'back_to_map',
-		'click .zoom-to-item': 'show_item_on_map'
+		'tap .show-current-location': 'show_current_location',
+		'tap .back-to-map': 'back_to_map',
+		'tap .zoom-to-item': 'show_item_on_map'
 	},
 	
 	events_active: true,
@@ -91,7 +91,6 @@ var MappingMapView = Backbone.View.extend({
     	$content.html(self.item_cluster_view.render().el);
     	$content.fadeIn('fast', function(){
     		self.events_active = true;
-    		console.log(self.events_active);
     	});
     	self.item_cluster_view.scroll('cluster-content-view');
 		window.backbutton_func = function() {
@@ -127,8 +126,8 @@ var MappingMapView = Backbone.View.extend({
 			}else{
 				var id = parseInt(arg);
 			}
-			var bone_id = this.map_items.url+id+'/';
-	    	var mdl = this.map_items.get(bone_id)
+			var mdl_id = '/api/v1/map_item/'+id+'/';
+	    	var mdl = this.map_items.get(mdl_id)
 		}
 		
 		//$('#mapping-map-view').fadeIn('fast');
@@ -173,15 +172,10 @@ var MappingMapView = Backbone.View.extend({
     },
     
     check_events_active: function () {
-    	if (this.item_cluster_view) {
-    		if (!this.item_cluster_view.events_active) return false;
-    	}
     	if (this.events_active) {
-    		console.log("aca esta");
     		this.events_active = false;
     		return true;
     	} else {
-    		console.log("aca no esta");
     		return false;
     	} 
     }

@@ -5,8 +5,9 @@
 var RegisterView = Backbone.View.extend({
     
     events: {
-        "submit": "submitRegister",
-        "click .enter": "enter"
+        "submit #register-form": "submitRegister",
+        "tap .register-submit": "submitRegister",
+        "tap .enter": "enter"
     },
     
     render: function(){
@@ -73,10 +74,9 @@ var RegisterView = Backbone.View.extend({
          			}else{
          				error = "Ocurrio un error. Revisa tus datos e inténtalo de nuevo.";	
          			}
-         			//navigator.notification.alert(error, function(){}, 'Error de validación', 'ok');
-    				alert(error);
+    				notify_alert('Error de validación', error);
          		}
-         	});
+		});
     },
     
     validate_form: function(data) {
@@ -108,8 +108,7 @@ var RegisterView = Backbone.View.extend({
     	if (!error) { 
     		return true;
     	}else{
-    		//navigator.notification.alert(error, function(){}, 'Error de validación', 'ok');
-    		alert(error);
+    		notify_alert('Error de validación', error);
     		return false;
     	}
     },
@@ -164,8 +163,7 @@ var RegisterView = Backbone.View.extend({
                 
                 }else if(response.error){
                 	var error = "Aún te falta activar tu cuenta."
-                	//navigator.notification.alert(error, function(){}, 'Error de activación', 'ok');
-		    		alert(error);
+		    		notify_alert('Error de activación', error);
 		    		return false;
                 }
             },

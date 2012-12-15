@@ -41,7 +41,6 @@ function locAccuracy2Zoom(acc, min, max) {
 	var zoom = parseInt(Math.round(acc + min));
 	if (zoom < min) zoom = min;
 	else if (zoom > max) zoom = max; 
-	//alert(zoom);
 	return zoom;
 }
 
@@ -57,7 +56,7 @@ window.LocationInputView = Backbone.View.extend({
 	},
 	
 	events: {
-		'click .show-current-location': 'show_current_location'
+		'tap .show-current-location': 'show_current_location'
 	},
 	
 	render: function () {	
@@ -142,5 +141,6 @@ window.LocationInputView = Backbone.View.extend({
 				enableHighAccuracy: true
 			}
     	);
-    }	
+    },
+  	
 });

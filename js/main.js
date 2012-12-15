@@ -2,9 +2,16 @@ Backbone.View.prototype.close = function () {
     if (this.beforeClose) {
         this.beforeClose();
     }
+    if (this.scroller) this.scroller.destroy();
+    if (this.map) this.map.destroy();
     this.remove();
     this.unbind();
 };
+
+Backbone.View.prototype.kill_event = function (ev) {
+	ev.preventDefault();
+	ev.stopImmediatePropagation();
+}
 
 
 var DateaRouter = Backbone.Router.extend({
@@ -26,6 +33,19 @@ var DateaRouter = Backbone.Router.extend({
         "mapping/:mapid/reports/:reportid":"mapItemDetail",
         "mapeo/:mapid/dateos/:reportid":"mapItemDetail",
     	"history": "openHistory",
+	},
+	
+	initialize: function () {
+		/* INIT MAIN CATEGORIES */
+		this.categoryCollection = new CategoryCollection();
+		this.categoryCollection.fetch();
+	},
+	
+	route: function (route, name, callback) {
+		return Backbone.Router.prototype.route.call(this, route, name, function() {
+            this.last_route = route;
+            callback.apply(this, arguments);
+        });
 	},
 	
 	/******************** VIEW FUNCTIONS *****************************/
@@ -127,10 +147,15 @@ var DateaRouter = Backbone.Router.extend({
         	this.actionListView = new ActionsView({
                 model: this.actionCollection,
         		user_model: localUser,
-                selected_mode : 'my_actions'                        
+                selected_mode : 'my_actions',
+                router: this                        
     	 	});
         }else{
+        	if (this.current_action_mode && this.current_action_mode != 'my_actions') {
+        		this.actionListView.page = 0;
+        	}
         	this.actionListView.selected_mode = 'my_actions';
+        	this.actionListView.delegateEvents();
         	$.extend(this.actionListView.options, {
         		search_term: '-',
         		category_filter: '-',
@@ -138,6 +163,7 @@ var DateaRouter = Backbone.Router.extend({
         	});
         }
         this.actionListView.params_to_default();
+        
     	this.showView('#main', this.actionListView);
     	this.actionListView.search_models();
         this.renderHeader('actions', 'my_actions');
@@ -146,26 +172,42 @@ var DateaRouter = Backbone.Router.extend({
     },
 
     actionDetail: function(actionid){
+    	
+    	this.back_to_action = actionid;
+    	
         if(!this.actionModel){
             this.actionModel = new Action();
         }
-        this.actionModel.url = api_url + "/api/v1/mapping_full/" + actionid + '/';
+        this.actionModel.url = api_url + "/api/v1/mapping/" + actionid + '/';
         var self = this;
-        this.actionModel.fetch({
-            success: function(){
-                //console.log("action fetched");
-                if(!this.actionView){
-                    self.actionView = new ActionView({model: self.actionModel});
-                }
-                self.showView('#main', self.actionView);
-                self.renderNavigation('general');
-            },
-            error: function(error){
-                onOffline();
+        
+        if (this.actionModel.get('id') == actionid) {
+        	
+        	if(!this.actionView){
+                self.actionView = new ActionView({model: self.actionModel, router: this});
             }
-        });
+            self.showView('#main', self.actionView);
+            self.renderNavigation('dateo', 'ftr_new-dateo', self.actionModel.toJSON());
+             
+        }else{
+	        this.actionModel.fetch({
+	            success: function(model, response){
+	                //console.log("action fetched");
+	                if(!self.actionView){
+	                    self.actionView = new ActionView({model: self.actionModel, router: self});
+	                }else{
+	                	self.actionView.delegateEvents();
+	                }
+	                self.showView('#main', self.actionView);
+	                self.renderNavigation('dateo', 'ftr_new-dateo', self.actionModel.toJSON()); 
+	            },
+	            error: function(error){
+	            	self.navigate(self.last_route, {trigger: false, replace: true});
+	                onOffline();
+	            }
+	        });
+	    }
     },
-
          
 	createReport: function(mapid) {
         
@@ -173,7 +215,7 @@ var DateaRouter = Backbone.Router.extend({
         
         if (!this.actionModel) {
     		this.actionModel = new Action({id: mapid});
-    		this.actionModel.urlRoot = '/api/v1/mapping_full';
+    		this.actionModel.urlRoot = '/api/v1/mapping';
     	}else if (this.actionModel.get('id') == mapid) {
     		do_fetch = false;
     	}
@@ -191,9 +233,11 @@ var DateaRouter = Backbone.Router.extend({
 	                    model: self.newMapItem,
 	                    mappingModel: self.actionModel
 	                }); 
-	                self.showView('#main', self.newMapItemView);   
+	                self.showView('#main', self.newMapItemView);
+	                self.renderNavigation('dateo', 'ftr_new-dateo', self.actionModel.toJSON());   
 	            },
 	            error: function(error){
+	            	self.navigate(self.last_route, {trigger: false, replace: true});
 	                onOffline();
 	            }
 	        });
@@ -206,21 +250,18 @@ var DateaRouter = Backbone.Router.extend({
                 mappingModel: this.actionModel
             }); 
             this.showView('#main', this.newMapItemView); 
+            this.renderNavigation('dateo', 'ftr_new-dateo', this.actionModel.toJSON());
 	    }
-   		this.renderNavigation('dateo', 'ftr_new-dateo', this.actionModel.toJSON());
     	this.renderHeader('general');
     },
        
 	mappingMap: function(mapid, callback_func, zoom_item_id) {
 		
-		//mapid = 16;
-    	
     	var do_fetch = true;
     	
-    	if (!this.actionModel) {
-    		this.actionModel = new Action({id: mapid});
-    		this.actionModel.urlRoot = '/api/v1/mapping_full';
-    	}else if (this.actionModel.get('id') == mapid) {
+    	if (!this.actionModel.get('map_items')) {
+    		this.mapItems = new MapItemCollection();
+    	} else if (this.actionModel.get('id') == mapid && this.actionModel.get('map_items')) {
     		do_fetch = false;
     	}
         
@@ -232,20 +273,27 @@ var DateaRouter = Backbone.Router.extend({
     	
     	if (do_fetch) {
     		var self = this;
-    		this.actionModel.fetch({
+    		this.mapItems.fetch({
+    			data: {
+    				published: 1,
+    				action: mapid,
+    				order_by: '-created',
+    			},
     			success: function () {
+    				self.actionModel.set('map_items', self.mapItems.toJSON(), {silent: true});
 					self.showView('#main', self.mappingMapView);
 					self.mappingMapView.loadMap(zoom_item_id);
 					if (typeof(callback_func) != 'undefined') callback_func();
 					self.renderNavigation('dateo', 'ftr_dateo', self.actionModel.toJSON());
 				},
-				error: function(error) {
+				error: function(model,error) {
+					self.navigate(self.last_route, {trigger: false, replace: true});
 	                onOffline();
 				}
 			});
+			
 		}else{
 			this.showView('#main', this.mappingMapView);
-			this.mappingMapView.undelegateEvents();
 			this.mappingMapView.delegateEvents();
 			this.mappingMapView.loadMap(zoom_item_id);
 			if (typeof(callback_func) != 'undefined') callback_func();
@@ -255,7 +303,7 @@ var DateaRouter = Backbone.Router.extend({
     },
     
     mapItemDetail: function(mapping_id, item_id) {
-		
+
 		var self = this;
     	this.mappingMap( mapping_id, function(){
     		// find model data in actionModel map items
@@ -266,8 +314,6 @@ var DateaRouter = Backbone.Router.extend({
 	    	var clusterCol = new MapItemCollection([item_model]);
     		self.mappingMapView.show_cluster_content_callback(clusterCol, self.mappingMapView);
     	}, item_id);
-        this.renderNavigation('dateo', 'ftr_dateo', mapping_id);
-        this.renderHeader('general');
     },
     
     openHistory: function () {    	
@@ -294,16 +340,22 @@ var DateaRouter = Backbone.Router.extend({
                 model: this.categoryCollection
             });
         }
-        this.categoryCollection.fetch({
-            success: function(){
-                self.showView("#main", self.searchFormView );
-            },
-            error: function(error){
-                onOffline();
-            }
-        })
+        if (this.categoryCollection.size() == 0) {
+	        this.categoryCollection.fetch({
+	            success: function(){
+	                self.showView("#main", self.searchFormView );
+	            },
+	            error: function(error){
+	            	self.navigate(self.last_route, {trigger: false, replace: true});
+	                onOffline();
+	            }
+	        });
+	    }else{
+	    	self.showView("#main", self.searchFormView );
+	    }
         this.renderNavigation('general');
         this.renderHeader('actions', 'nav_srch');
+        this.action_reset = true;
     },
 
     searchQuery : function(term, cat, order){
@@ -318,21 +370,26 @@ var DateaRouter = Backbone.Router.extend({
                 selected_mode : 'all_actions',
                 search_term: term,
                 category_filter: cat,
-                order_by: order                    
+                order_by: order,
+                router: this                  
     	 	});
         }else{
+            if (this.action_reset || (this.current_action_mode && this.current_action_mode != 'all_actions')) {
+            	this.actionListView.page = 0;
+            	this.action_reset = undefined;
+            }
             this.actionListView.selected_mode = 'all_actions';
-            this.actionListView.page = 0;
             $.extend(this.actionListView.options, {
         		search_term: term,
         		category_filter: cat,
         		order_by: order,
         	});
+			this.actionListView.delegateEvents();
         }
     	this.showView('#main', this.actionListView);
     	this.actionListView.search_models();
        	this.renderNavigation('general', 'ftr_actions');
-       	this.renderHeader('actions', 'nav_srch');
+       	this.renderHeader('actions');
     },
     
     
@@ -434,9 +491,8 @@ function init_main () {
 	window_h = $(window).height();
 	main_h = (window_h - 48);
 	main_w = $(window).width();
+	$('#main').css({height: "460px", width: "302px"});
 	$('#main').css({height: main_h, width: main_w});
-	
-	init_kb_extra();
 	
     utils.loadTpl(['HeaderView', 
                     'AboutView', 
@@ -475,12 +531,18 @@ function init_main () {
                     'CommentWidgetView',
                     'HistoryItemView',
                     'HistoryListView',
-                    'SearchFormView'
+                    'SearchFormView',
+                    'CustomSelectBoxView',
+                    'CustomSelectBoxOptionsView'
                     ],
 	function () {
 		
 		init_autosize();
+		init_links();
+		init_kb_extra();
 		
+		
+		/******************* INIT AJAX *******************/
 		$.ajaxSetup({ 
             beforeSend: function(){
                 $('#spinner').fadeIn("fast");
@@ -492,66 +554,63 @@ function init_main () {
         });
 		$.support.cors = true;
 		
-        Backbone.Tastypie.prependDomain = api_url;       
+        Backbone.Tastypie.prependDomain = api_url;
+        
+        /******************* INIT USER ***********************/       
         window.localSession = new Session();
         window.localUser = new User();
-            //
-            
-        //if(localStorage.getItem('authdata') !== null) {
+
         if(localStorage.getItem('authdata') && localStorage.getItem('authdata')!== null) {
-            //console.log(localStorage.getItem('authdata'));
-    	    //window.localSession = new localSession();
-            //window.localUser = new User();
                
             var authdata = JSON.parse(localStorage.getItem('authdata'));
             localSession.set(authdata);
-                //bootstrap user data
+            //bootstrap user data
+            
+            if(localSession.get('logged')){
+                userid = localSession.get('userid');
+                //console.log('token: ' + localSession.get('token'));
+                //console.log("fetching user data");
                 
-                if(localSession.get('logged')){
-                    userid = localSession.get('userid');
-                    //console.log('token: ' + localSession.get('token'));
-                    //console.log("fetching user data");
-                    
-                    fetch_data = { 
-                        data:{
-                        	'id': userid,
-                        	'api_key': localSession.get('token'),
-                        	'username': localSession.get('username'),
-                        	'user_full': 1
-                        },
-                        success: function(mdl, res){
-                        	//console.log(mdl);
-                            //console.log("user model: " + JSON.stringify(mdl.toJSON()));
-                            if(mdl.get('follows') !== undefined ){
-                                    window.myFollows = new FollowCollection(mdl.get('follows'));
-                                    //console.log('follows: ' + JSON.stringify(myFollows));
-                            }
-                            if(mdl.get('votes') !== undefined){
-                                window.myVotes = new VoteCollection(mdl.get('votes'));
-                            }
-                            window.dateaApp = new DateaRouter();           
-                        	Backbone.history.start();
-
-                        },
-                        error: function(){
-                            //console.log("some error fetching");
-                            onOffline();
-                            //window.dateaApp = new DateaRouter();           
-                        	//Backbone.history.start();
-                        	setTimeout(function(){
-                        		localUser.fetch(fetch_data);
-                        	},1000);
-              
+                fetch_data = { 
+                    data:{
+                    	'id': userid,
+                    	'api_key': localSession.get('token'),
+                    	'username': localSession.get('username'),
+                    	'user_full': 1
+                    },
+                    success: function(mdl, res){
+                    	//console.log(mdl);
+                        //console.log("user model: " + JSON.stringify(mdl.toJSON()));
+                        if(mdl.get('follows') !== undefined ){
+                                window.myFollows = new FollowCollection(mdl.get('follows'));
+                                //console.log('follows: ' + JSON.stringify(myFollows));
                         }
+                        if(mdl.get('votes') !== undefined){
+                            window.myVotes = new VoteCollection(mdl.get('votes'));
+                        }
+                        window.dateaApp = new DateaRouter();           
+                    	Backbone.history.start();
+
+                    },
+                    error: function(){
+                        //console.log("some error fetching");
+                        onOffline();
+                        //window.dateaApp = new DateaRouter();           
+                    	//Backbone.history.start();
+                    	setTimeout(function(){
+                    		localUser.fetch(fetch_data);
+                    	},1500);
+          
                     }
-                    
-                    localUser.fetch(fetch_data);        
                 }
-                else{
-                    //console.log("localstorage but not logged in");    
-                	window.dateaApp = new DateaRouter();           
-                	Backbone.history.start();
-                }
+                
+                localUser.fetch(fetch_data);
+            
+            }else{
+                //console.log("localstorage but not logged in");    
+            	window.dateaApp = new DateaRouter();           
+            	Backbone.history.start();
+            }
         }else{
             //console.log("no data in localSotrage, storing persistent session data");    
             window.localStorage.setItem('authdata', JSON.stringify(localSession));
@@ -561,6 +620,7 @@ function init_main () {
     });  
 }
 
+/************************* INIT EVENTS ****************************/
 
 function onLoad() {
 	document.addEventListener("deviceready",onDeviceReady,false);
@@ -574,119 +634,4 @@ function onDeviceReady() {
     document.addEventListener("showkeyboard", onKBShow, false);
 }
 
-function onKBHide() {
-	if (input_focused) {
-		footer_visible = footer_was_visible;
-		return;
-	}
-	if (footer_was_visible) showFooter('show');
-	var inter = setInterval(function(){
-		if ($(window).height() >= window_h) {
-			clearInterval(inter);
-			if (window.dateaApp.currentView.scroller) window.dateaApp.currentView.scroll_refresh();
-		}
-	}, 100);
-}
-
-function onKBShow() {
-	footer_was_visible = footer_visible;
-	showFooter('hide');
-}
-
-input_focused = false;
-function init_kb_extra() {
-	
-	$(document).on('focus','input, textarea', {}, function(){
-		input_focused = true;
-		setTimeout(function(){
-			input_focused = false;
-		}, 500)
-	});
-	$(document).on('blur','input, textarea', {}, function(){
-		input_focused = false;
-	});
-}
-
-footer_visible = true;
-footer_was_visible = true;
-function onMenuDown() {
-	showFooter('toggle');
-	if (!dateaApp.currentView.manual_scroll) {
-		dateaApp.currentView.scroll_refresh();
-	}else{
-		if (dateaApp.currentView.manual_scroll_refresh) {
-			dateaApp.currentView.manual_scroll_refresh();
-		}
-	}
-}
-
-function showFooter(mode) {
-	
-	switch(mode) {
-		case 'show':
-			footer_visible = true;
-			$('body').addClass('with-footer');
-			$('#footer').slideDown('fast');
-			break;
-		case 'hide':
-			$('body').removeClass('with-footer');
-			footer_visible = false;
-			$('#footer').hide();
-			break;
-		case 'toggle':
-			if (footer_visible) {
-				showFooter('hide');
-			}else{
-				showFooter('show');
-			}
-			break;
-	}
-}
-
-function init_autosize() {
-	$(document).on('focus', 'textarea',{},function(){
-		if (!$(this).hasClass('autosized')) {
-			$(this).addClass('autosized').autosize();
-		}
-	});
-}
-
-
-function onBackKeyPress() {
-	input_focused = false;
-	if (typeof(window.backbutton_func) != 'undefined') {
-		window.backbutton_func();
-		window.backbutton_func = undefined;
-	}else{
-		window.history.back();
-	}
-}
-
-function onOffline(close){
-	var error = 'Datea necesita Internet. Revisa tu conexión e intenta nuevamente.';
-	if (navigator.notification){
-	    navigator.notification.alert(
-	        error,
-	        function() 
-	        {
-	        	if (typeof(close) != 'undefined' && close == true) {
-	        		if (navigator.app && navigator.app.exitApp) {
-				        navigator.app.exitApp();
-				    } else if (navigator.device && navigator.device.exitApp) {
-				        navigator.device.exitApp();
-				    }
-	        	}
-	        },
-	        'Error de conexión',
-	        'ok'
-	    );
-	 }else{
-	 	alert(error);
-	 }
-	 $('#spinner').fadeOut("fast");
-}
-
-function offLineAlertDismissed() {
-	// he quitado esto, porque no creo que deberia salirse de la app, sino simplemente avisar.
-}
 
