@@ -20,6 +20,7 @@
     <preference name="phonegap-version" value="2.2.0" />
     <preference name="fullscreen" value="false" />
     <preference name="orientation" value="portrait" />
+    <preference name="splash-screen-duration" value="3000" />
 
     <!-- android specific configurations -->
     <preference name="android-minSdkVersion" value="10" />
@@ -51,6 +52,7 @@
     <feature name="http://api.phonegap.com/1.0/media"/>
     <feature name="http://api.phonegap.com/1.0/network"/>
     <feature name="http://api.phonegap.com/1.0/notification"/>
+    <feature name="http://api.phonegap.com/1.0/file"/>
     
     <!-- access -->
     <!-- TODO: update domain to datea.pe -->
