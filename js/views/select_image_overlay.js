@@ -40,7 +40,7 @@ var SelectImageOverlayView = Backbone.View.extend({
                	self.hideOverlay();
             },
             {
-                quality: 50,
+                quality: 30,
                 destinationType: navigator.camera.DestinationType.FILE_URI,
                 correctOrientation: true,
             }
