@@ -54,7 +54,7 @@ var SelectImageOverlayView = Backbone.View.extend({
      	event.preventDefault();
     	
     	if (this.is_active) this.is_active = false;
-    	else return;
+    	else return;	
      	
         var self = this;
         event.preventDefault();
