@@ -40,9 +40,12 @@ var SelectImageOverlayView = Backbone.View.extend({
                	self.hideOverlay();
             },
             {
-                quality: 30,
+                quality: 50,
                 destinationType: navigator.camera.DestinationType.FILE_URI,
                 correctOrientation: true,
+                targetWidth: 800,
+                targetHeight: 800,
+                //saveToPhotoAlbum: true,
             }
         );
      },
