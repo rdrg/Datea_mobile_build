@@ -534,7 +534,7 @@ function init_main () {
 	window_h = $(window).height();
 	main_h = (window_h - 48);
 	main_w = $(window).width();
-	$('#main').css({height: "460px", width: "302px"});
+	//$('#main').css({height: "432px", width: "320px"});
 	$('#main').css({height: main_h, width: main_w});
 	
     utils.loadTpl(['HeaderView', 
