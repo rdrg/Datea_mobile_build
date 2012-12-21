@@ -16,6 +16,14 @@
 @import "search.less";
 @import "customSelectBox.less";
 
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+
 body{
   color: @gray;
   padding: 0px;
@@ -23,6 +31,8 @@ body{
   -webkit-text-size-adjust: none;
   font-family: helvetica;
   background-image: url('../img/bg.png');
+  height: 100%;
+  overflow: hidden !important;
 }
 
 h1{
@@ -78,7 +88,7 @@ a:hover{
 }
 
 .with-footer #wrapper {
-   padding-bottom: 65px;
+   padding-bottom: 78px;
 }
 
 .container{
@@ -141,4 +151,36 @@ a:hover{
   border: none;
   margin-left: 2px;
   .round(5px);
+}
+
+#overlay{
+  -webkit-transform: translate3d(0px,0px,0px);
+  -webkit-box-shadow: 0px -6px 20px 0px #ccc;
+  box-shadow: 0px -6px 20px 0px #ccc;
+  display: none;
+  position: absolute;
+  z-index: 100;
+  background-color: #999;
+  width: 100%;
+  height: 191px;
+  bottom: 0px;
+  left: 0px;
+  z-index: 200; 
+  padding-top: 30px;
+  a{
+    width: 255px;
+    height: 22px;
+  }
+}
+.over_btn{
+  text-align: center;
+  width: 100%;
+  margin-bottom: 25px;
+  span {
+    font-size: 18px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    display: block;
+    margin: 0 20px;
+  }
 }

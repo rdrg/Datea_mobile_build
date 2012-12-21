@@ -21,7 +21,7 @@ var MappingMapView = Backbone.View.extend({
     render: function(){
       this.map_items = new MapItemCollection(this.model.get('map_items'));
       this.$el.html(this.template());
-      this.$el.fadeIn("fast");
+      this.$el.show();
       return this;
     },
     
@@ -89,7 +89,7 @@ var MappingMapView = Backbone.View.extend({
     	self.item_cluster_view = new MapItemClusterView({collection: itemCollection, parent_view: self});
     	var $content = self.$el.find('.cluster-content-view');
     	$content.html(self.item_cluster_view.render().el);
-    	$content.fadeIn('fast', function(){
+    	$content.show(0, function(){
     		self.events_active = true;
     	});
     	self.item_cluster_view.scroll('cluster-content-view');
@@ -111,7 +111,7 @@ var MappingMapView = Backbone.View.extend({
 		}
     	if (!this.check_events_active()) return;
     	var self = this;
-    	this.$el.find('.cluster-content-view').fadeOut("fast", function(){
+    	this.$el.find('.cluster-content-view').hide(0, function(){
     		self.events_active = true;
     		self.item_cluster_view.close();
     		self.item_cluster_view = undefined;
@@ -119,6 +119,7 @@ var MappingMapView = Backbone.View.extend({
     },
     
     zoom_to_item: function(arg) {
+    	console.log('zoom to ITEM!')
     	if (typeof(arg.attributes) != 'undefined'){
 			var mdl = arg;
 		}else{
@@ -131,7 +132,7 @@ var MappingMapView = Backbone.View.extend({
 			var mdl_id = '/api/v1/map_item/'+id+'/';
 	    	var mdl = this.map_items.get(mdl_id)
 		}
-		
+		console.log(mdl.get('id'));
 		//$('#mapping-map-view').fadeIn('fast');
 		var pos = mdl.get('position').coordinates;
     	var locInfo = {lat: pos[1], lng: pos[0], zoom: 17};

@@ -4,7 +4,7 @@ var CustomSelectBoxView = Backbone.View.extend({
 	initialize: function() {
 		if (this.options.value) {
 			this.value = this.options.value;
-			this.select_option = _.find(this.options.options, function(opt){ return opt.value == this.value; }, this);
+			this.selected_option = _.find(this.options.options, function(opt){ return opt.value == this.value; }, this);
 		}else{
 			this.value = this.options.options[0].value;
 			this.selected_option = this.options.options[0];
@@ -81,7 +81,7 @@ var CustomSelectBoxOptionsView = Backbone.View.extend({
 		$('#opt-'+value).addClass('active');
 		var self = this;
 		setTimeout(function(){
-			$('.cselect-opt-wrapper', self.$el).slideUp('fast', function() {
+			$('.cselect-opt-wrapper', self.$el).hide(0, function() {
 				self.close();
 				self.parent_view.select_option(value);
 				window.backbutton_func = undefined;

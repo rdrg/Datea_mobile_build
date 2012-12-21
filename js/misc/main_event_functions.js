@@ -142,9 +142,15 @@ function onOffline(close){
 	 }else{
 	 	alert(error);
 	 }
-	 $('#spinner').fadeOut("fast");
+	 $spinner.hide();
 }
 
 function offLineAlertDismissed() {
 	// he quitado esto, porque no creo que deberia salirse de la app, sino simplemente avisar.
+}
+
+
+/************************** IPHONE WINDOW STUFF ************************/
+function noTouchMove(ev) {
+	ev.preventDefault();
 }
